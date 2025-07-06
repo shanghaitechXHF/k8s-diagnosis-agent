@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "k8s-diagnosis-agent.fullname" . }}
+  labels:
+    {{- include "k8s-diagnosis-agent.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "k8s-diagnosis-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "k8s-diagnosis-agent.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "k8s-diagnosis-agent.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: WEB_HOST
+              value: {{ .Values.config.web.host | quote }}
+            - name: WEB_PORT
+              value: {{ .Values.config.web.port | quote }}
+            - name: WEB_DEBUG
+              value: {{ .Values.config.web.debug | quote }}
+            - name: WEB_CORS_ORIGINS
+              value: {{ .Values.config.web.corsOrigins | join "," | quote }}
+            - name: LLM_DEFAULT_MODEL
+              value: {{ .Values.config.llm.defaultModel | quote }}
+            - name: LLM_TEMPERATURE
+              value: {{ .Values.config.llm.temperature | quote }}
+            - name: LLM_MAX_TOKENS
+              value: {{ .Values.config.llm.maxTokens | quote }}
+            - name: LLM_TIMEOUT
+              value: {{ .Values.config.llm.timeout | quote }}
+            - name: LOGGING_LEVEL
+              value: {{ .Values.config.logging.level | quote }}
+            - name: LOGGING_FORMAT
+              value: {{ .Values.config.logging.format | quote }}
+            - name: SESSION_TIMEOUT
+              value: {{ .Values.config.session.timeout | quote }}
+            - name: SESSION_MAX_CONVERSATION_LENGTH
+              value: {{ .Values.config.session.maxConversationLength | quote }}
+            - name: PERMISSIONS_ENABLED
+              value: {{ .Values.config.permissions.enabled | quote }}
+            - name: PERMISSIONS_DEFAULT_ROLE
+              value: {{ .Values.config.permissions.defaultRole | quote }}
+            {{- if .Values.secrets.llmApiKeys.openai }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "k8s-diagnosis-agent.fullname" . }}-secrets
+                  key: openai-api-key
+            {{- end }}
+            {{- if .Values.secrets.llmApiKeys.claude }}
+            - name: CLAUDE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "k8s-diagnosis-agent.fullname" . }}-secrets
+                  key: claude-api-key
+            {{- end }}
+            {{- if .Values.secrets.llmApiKeys.deepseek }}
+            - name: DEEPSEEK_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "k8s-diagnosis-agent.fullname" . }}-secrets
+                  key: deepseek-api-key
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            {{- if .Values.configMap.kubeconfig.enabled }}
+            - name: kubeconfig
+              mountPath: /app/kubeconfig
+              readOnly: true
+            {{- end }}
+            {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: /app/data
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "k8s-diagnosis-agent.fullname" . }}-config
+        {{- if .Values.configMap.kubeconfig.enabled }}
+        - name: kubeconfig
+          configMap:
+            name: {{ include "k8s-diagnosis-agent.fullname" . }}-kubeconfig
+        {{- end }}
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "k8s-diagnosis-agent.fullname" . }}-data
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }} 

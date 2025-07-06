@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  k8s-diagnosis-agent:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # LLM配置 - 请在.env文件中设置实际的API密钥
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-gpt-4}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      
+      # Kubernetes配置
+      - KUBECONFIG_PATH=${KUBECONFIG_PATH:-/root/.kube/config}
+      - USE_IN_CLUSTER_CONFIG=${USE_IN_CLUSTER_CONFIG:-false}
+      
+      # Web服务配置
+      - WEB_HOST=0.0.0.0
+      - WEB_PORT=8000
+      - DEBUG=${DEBUG:-false}
+      
+      # 日志配置
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    
+    volumes:
+      # 挂载kubeconfig文件
+      - ${HOME}/.kube:/root/.kube:ro
+      # 挂载日志目录
+      - ./logs:/app/logs
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: k8s-diagnosis-agent-network 

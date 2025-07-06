@@ -1,0 +1,20 @@
+apiVersion: v2
+name: k8s-diagnosis-agent
+description: AI Agent for Kubernetes cluster fault diagnosis
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/your-username/k8s-diagnosis-agent
+sources:
+  - https://github.com/your-username/k8s-diagnosis-agent
+maintainers:
+  - name: k8s-diagnosis-agent
+    email: maintainer@example.com
+keywords:
+  - kubernetes
+  - diagnosis
+  - ai
+  - troubleshooting
+  - monitoring
+annotations:
+  category: Monitoring 
