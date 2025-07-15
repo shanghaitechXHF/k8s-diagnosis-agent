@@ -1,0 +1,16 @@
+# LangChain 相关依赖
+langchain>=0.1.0
+langchain-openai>=0.1.0
+langchain-anthropic>=0.1.0
+langchain-community>=0.1.0
+langchain-core>=0.1.0
+
+# 向量存储
+chromadb>=0.4.0
+
+# 嵌入模型
+openai>=1.0.0
+
+# 其他依赖
+pydantic>=2.0.0
+typing-extensions>=4.0.0
